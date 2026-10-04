@@ -12,13 +12,12 @@ import {
 
 import { supabase } from '../lib/supabase'
 import { authStyles } from '../styles/auth.styles'
-
-type Mode = 'signIn' | 'signUp'
+import type { AuthScreenMode } from './AuthScreen.types'
 
 export function AuthScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [mode, setMode] = useState<Mode>('signUp')
+  const [mode, setMode] = useState<AuthScreenMode>('signUp')
   const [message, setMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isSignUp = mode === 'signUp'

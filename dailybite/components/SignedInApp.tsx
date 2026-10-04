@@ -1,56 +1,15 @@
 import { NavigationContainer } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import { Text, View } from 'react-native'
 
+import { AddFoodScreen } from './tabs/AddFoodScreen'
+import { DailyLogScreen } from './tabs/DailyLogScreen'
+import { HomeScreen } from './tabs/HomeScreen'
+import { ProfileScreen } from './tabs/ProfileScreen'
+import { ReportsScreen } from './tabs/ReportsScreen'
 import { appStyles } from '../styles/app.styles'
-
-type AppTabParamList = {
-  Home: undefined
-  'Add Food': undefined
-  Reports: undefined
-  Profile: undefined
-}
+import type { AppTabParamList, SignedInAppProps } from './SignedInApp.types'
 
 const Tab = createBottomTabNavigator<AppTabParamList>()
-
-type SignedInAppProps = {
-  onSignOut: () => Promise<void>
-}
-
-function TabContent({ title, description }: { title: string; description: string }) {
-  return (
-    <View style={appStyles.screen}>
-      <Text style={appStyles.eyebrow}>DAILYBITE</Text>
-      <Text style={appStyles.title}>{title}</Text>
-      <Text style={appStyles.body}>{description}</Text>
-    </View>
-  )
-}
-
-function HomeScreen() {
-  return <TabContent description="Your daily calorie summary will appear here." title="Today" />
-}
-
-function AddFoodScreen() {
-  return <TabContent description="Food search and entry logging are coming next." title="Add food" />
-}
-
-function ReportsScreen() {
-  return <TabContent description="Your weekly nutrition trends will appear here." title="Reports" />
-}
-
-function ProfileScreen({ onSignOut }: SignedInAppProps) {
-  return (
-    <View style={appStyles.screen}>
-      <Text style={appStyles.eyebrow}>DAILYBITE</Text>
-      <Text style={appStyles.title}>Profile</Text>
-      <Text style={appStyles.body}>Manage your account and nutrition preferences here.</Text>
-      <Text accessibilityRole="button" onPress={onSignOut} style={appStyles.action}>
-        Sign out
-      </Text>
-    </View>
-  )
-}
 
 export function SignedInApp({ onSignOut }: SignedInAppProps) {
   return (
@@ -65,6 +24,7 @@ export function SignedInApp({ onSignOut }: SignedInAppProps) {
       >
         <Tab.Screen component={HomeScreen} name="Home" />
         <Tab.Screen component={AddFoodScreen} name="Add Food" />
+        <Tab.Screen component={DailyLogScreen} name="Daily Log" />
         <Tab.Screen component={ReportsScreen} name="Reports" />
         <Tab.Screen name="Profile">
           {() => <ProfileScreen onSignOut={onSignOut} />}
