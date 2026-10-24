@@ -1,0 +1,18 @@
+export const FOOD_SYNONYMS: Record<string, string[]> = {
+  milk: ['milk whole'],
+  'lady finger': ['okra'],
+  ladyfinger: ['okra'],
+  okra: [],
+  brinjal: ['eggplant'],
+  eggplant: [],
+  curd: ['yogurt plain milk'],
+  'aloo paratha': ['paratha', 'bread, paratha'],
+  paratha: ['bread, paratha'],
+  'aloo parotha': ['paratha', 'bread, paratha'],
+  'butter milk': ['buttermilk'],
+  maggi: ['instant noodles', 'noodles'],
+  'instant noodles': ['noodles'],
+  noodles: ['noodles'],
+  rasgulla: ['firni', 'firni, indian pudding', 'pudding, rice'],
+  'rasgulla sweet': ['firni', 'firni, indian pudding'],
+}

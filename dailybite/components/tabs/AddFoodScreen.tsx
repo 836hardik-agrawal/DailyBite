@@ -10,7 +10,7 @@ import {
 
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
-import { searchUSDAFoods } from '../../lib/usda'
+import { searchFoodWithSynonyms } from '../../lib/searchFoodWithSynonyms'
 import type { USDAFoodResult, USDAFoodServingOption } from '../../lib/usda.types'
 import { appStyles } from '../../styles/app.styles'
 import type { AddFoodMessage } from './AddFoodScreen.types'
@@ -43,7 +43,7 @@ export function AddFoodScreen() {
         setIsLoading(true)
         setErrorMessage(null)
         console.info('[AddFood] Search started', { queryLength: trimmedQuery.length })
-        const nextResults = await searchUSDAFoods(trimmedQuery)
+        const nextResults = await searchFoodWithSynonyms(trimmedQuery)
 
         if (isMounted) {
           setResults(nextResults)

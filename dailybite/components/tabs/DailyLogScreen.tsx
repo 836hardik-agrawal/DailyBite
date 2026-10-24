@@ -3,9 +3,10 @@ import { useFocusEffect } from '@react-navigation/native'
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native'
 
 import { useAuth } from '../../hooks/useAuth'
+import { getLocalDateString } from '../../lib/localDate'
 import { supabase } from '../../lib/supabase'
 import { appStyles } from '../../styles/app.styles'
-import type { DailyTotals, FoodLogEntry } from './DailyLogScreen.types'
+import type { DailyTotals, FoodLogEntry, GoalMetric, NutritionGoal } from './DailyLogScreen.types'
 
 const emptyTotals: DailyTotals = {
   calories: 0,
@@ -28,6 +29,10 @@ function formatServings(value: number): string {
   return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)))
 }
 
+function formatMetricValue(metric: GoalMetric, value: number): string {
+  return metric === 'calories' ? `${Math.round(value)} kcal` : `${Number(value.toFixed(1))} g`
+}
+
 function shiftDate(date: Date, days: number): Date {
   const shiftedDate = new Date(date)
   shiftedDate.setDate(shiftedDate.getDate() + days)
@@ -38,6 +43,8 @@ export function DailyLogScreen() {
   const { session } = useAuth()
   const [selectedDate, setSelectedDate] = useState(() => new Date())
   const [entries, setEntries] = useState<FoodLogEntry[]>([])
+  const [dailyGoal, setDailyGoal] = useState<NutritionGoal | null>(null)
+  const [selectedGoalMetric, setSelectedGoalMetric] = useState<GoalMetric>('calories')
   const [isLoading, setIsLoading] = useState(false)
   const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -91,10 +98,34 @@ export function DailyLogScreen() {
           if (isCurrent) {
             setEntries((data ?? []) as unknown as FoodLogEntry[])
           }
+
+          const { data: goalData, error: goalError } = await supabase
+            .from('nutrition_targets')
+            .select('calorie_target, protein_target_g, carbs_target_g, fat_target_g, fiber_target_g')
+            .eq('user_id', userId)
+            .lte('effective_from', getLocalDateString(startOfDay))
+            .order('effective_from', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          if (goalError) {
+            throw goalError
+          }
+
+          if (isCurrent) {
+            setDailyGoal(goalData ? {
+              calories: goalData.calorie_target,
+              protein: Number(goalData.protein_target_g),
+              carbs: Number(goalData.carbs_target_g),
+              fat: Number(goalData.fat_target_g),
+              fiber: Number(goalData.fiber_target_g),
+            } : null)
+          }
         } catch (error) {
           console.error('[DailyLog] Load failed', error)
           if (isCurrent) {
             setEntries([])
+            setDailyGoal(null)
             setErrorMessage(
               error instanceof Error ? error.message : 'Could not load this day’s food log.',
             )
@@ -159,49 +190,156 @@ export function DailyLogScreen() {
     day: 'numeric',
     year: 'numeric',
   })
+  const goalMetrics: GoalMetric[] = ['calories', 'protein', 'carbs', 'fat', 'fiber']
 
   return (
     <View style={appStyles.dailyLogScreen}>
-      <Text style={appStyles.eyebrow}>DAILYBITE</Text>
-      <Text style={appStyles.dailyLogTitle}>Daily log</Text>
-
-      <View style={appStyles.dailyLogDateNavigation}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setSelectedDate((date) => shiftDate(date, -1))}
-          style={appStyles.dailyLogDateButton}
-        >
-          <Text style={appStyles.dailyLogDateButtonText}>Previous</Text>
-        </Pressable>
-        <Text style={appStyles.dailyLogDateText}>{isToday ? 'Today' : dateLabel}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: isToday }}
-          disabled={isToday}
-          onPress={() => setSelectedDate((date) => shiftDate(date, 1))}
-          style={[appStyles.dailyLogDateButton, isToday && appStyles.dailyLogDateButtonDisabled]}
-        >
-          <Text style={appStyles.dailyLogDateButtonText}>Next</Text>
-        </Pressable>
-      </View>
-
-      {isLoading ? (
-        <View style={appStyles.addFoodStatusRow}>
-          <ActivityIndicator color="#277C65" />
-          <Text style={appStyles.addFoodStatusText}>Loading food log...</Text>
-        </View>
-      ) : null}
-      {errorMessage ? <Text style={appStyles.addFoodErrorText}>{errorMessage}</Text> : null}
-
       <FlatList
         contentContainerStyle={appStyles.dailyLogListContent}
         data={entries}
         keyExtractor={(entry) => entry.id}
-        ListEmptyComponent={
+        ListHeaderComponent={(
+          <View>
+            <Text style={appStyles.eyebrow}>DAILYBITE</Text>
+            <Text style={appStyles.dailyLogTitle}>Daily log</Text>
+
+            <View style={appStyles.dailyLogDateNavigation}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setSelectedDate((date) => shiftDate(date, -1))}
+                style={appStyles.dailyLogDateButton}
+              >
+                <Text style={appStyles.dailyLogDateButtonText}>Previous</Text>
+              </Pressable>
+              <Text style={appStyles.dailyLogDateText}>{isToday ? 'Today' : dateLabel}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isToday }}
+                disabled={isToday}
+                onPress={() => setSelectedDate((date) => shiftDate(date, 1))}
+                style={[appStyles.dailyLogDateButton, isToday && appStyles.dailyLogDateButtonDisabled]}
+              >
+                <Text style={appStyles.dailyLogDateButtonText}>Next</Text>
+              </Pressable>
+            </View>
+
+            <View style={appStyles.dailyGoalSection}>
+              <Text style={appStyles.dailyGoalTitle}>Daily goal</Text>
+              <View style={appStyles.dailyGoalMetricSelector}>
+                {goalMetrics.map((metric) => {
+                  const isSelected = selectedGoalMetric === metric
+                  return (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      key={metric}
+                      onPress={() => setSelectedGoalMetric(metric)}
+                      style={[appStyles.dailyGoalMetric, isSelected && appStyles.dailyGoalMetricSelected]}
+                    >
+                      <Text style={[
+                        appStyles.dailyGoalMetricText,
+                        isSelected && appStyles.dailyGoalMetricTextSelected,
+                      ]}>
+                        {metric === 'calories' ? 'Calories' : metric.charAt(0).toUpperCase() + metric.slice(1)}
+                      </Text>
+                    </Pressable>
+                  )
+                })}
+              </View>
+              {dailyGoal ? (
+                <Text style={appStyles.dailyGoalValue}>
+                  Goal: {formatMetricValue(selectedGoalMetric, dailyGoal[selectedGoalMetric])}
+                </Text>
+              ) : (
+                <Text style={appStyles.dailyGoalEmptyText}>No daily goal is set for this user.</Text>
+              )}
+            </View>
+
+            {isLoading ? (
+              <View style={appStyles.addFoodStatusRow}>
+                <ActivityIndicator color="#277C65" />
+                <Text style={appStyles.addFoodStatusText}>Loading food log...</Text>
+              </View>
+            ) : null}
+            {errorMessage ? <Text style={appStyles.addFoodErrorText}>{errorMessage}</Text> : null}
+          </View>
+        )}
+        ListEmptyComponent={() =>
           !isLoading && !errorMessage ? (
             <Text style={appStyles.addFoodEmptyText}>No food logged for this day.</Text>
           ) : null
         }
+        ListFooterComponent={() => (
+          <View style={appStyles.dailyLogSummary}>
+            <Text style={appStyles.dailyLogSummaryTitle}>Current vs daily goal</Text>
+            <View style={appStyles.dailyLogSummaryGrid}>
+              <View style={appStyles.dailyLogSummaryItem}>
+                <Text style={appStyles.dailyLogSummaryValue}>{Math.round(totals.calories)}</Text>
+                <Text style={appStyles.dailyLogSummaryLabel}>kcal</Text>
+              </View>
+              <View style={appStyles.dailyLogSummaryItem}>
+                <Text style={appStyles.dailyLogSummaryValue}>{Number(totals.protein.toFixed(1))} g</Text>
+                <Text style={appStyles.dailyLogSummaryLabel}>Protein</Text>
+              </View>
+              <View style={appStyles.dailyLogSummaryItem}>
+                <Text style={appStyles.dailyLogSummaryValue}>{Number(totals.carbs.toFixed(1))} g</Text>
+                <Text style={appStyles.dailyLogSummaryLabel}>Carbs</Text>
+              </View>
+              <View style={appStyles.dailyLogSummaryItem}>
+                <Text style={appStyles.dailyLogSummaryValue}>{Number(totals.fat.toFixed(1))} g</Text>
+                <Text style={appStyles.dailyLogSummaryLabel}>Fat</Text>
+              </View>
+              <View style={appStyles.dailyLogSummaryItem}>
+                <Text style={appStyles.dailyLogSummaryValue}>{Number(totals.fiber.toFixed(1))} g</Text>
+                <Text style={appStyles.dailyLogSummaryLabel}>Fiber</Text>
+              </View>
+            </View>
+
+            {dailyGoal ? (
+              <View style={appStyles.dailyGoalComparisonList}>
+                {goalMetrics.map((metric) => {
+                  const current = totals[metric]
+                  const goal = dailyGoal[metric]
+                  const difference = current - goal
+                  const isSelected = selectedGoalMetric === metric
+                  const isOverGoal = difference > 0
+                  const isEqual = difference === 0
+                  const differenceText = isEqual
+                    ? 'Goal met'
+                    : `${Math.abs(difference).toFixed(metric === 'calories' ? 0 : 1)} ${isOverGoal ? 'above' : 'below'} goal`
+
+                  return (
+                    <View
+                      key={metric}
+                      style={[
+                        appStyles.dailyGoalComparisonItem,
+                        isSelected && appStyles.dailyGoalComparisonItemSelected,
+                      ]}
+                    >
+                      <Text style={appStyles.dailyGoalComparisonMetric}>
+                        {metric === 'calories' ? 'Calories' : metric.charAt(0).toUpperCase() + metric.slice(1)}
+                      </Text>
+                      <Text style={[
+                        appStyles.dailyGoalComparisonDifference,
+                        isOverGoal && appStyles.dailyGoalComparisonDifferenceOver,
+                        !isOverGoal && !isEqual && appStyles.dailyGoalComparisonDifferenceUnder,
+                        isEqual && appStyles.dailyGoalComparisonDifferenceEqual,
+                      ]}>
+                        {differenceText}
+                      </Text>
+                      <Text style={appStyles.dailyGoalComparisonCurrent}>
+                        Current: {formatMetricValue(metric, current)}
+                      </Text>
+                      <Text style={appStyles.dailyGoalComparisonGoal}>
+                        Goal: {formatMetricValue(metric, goal)}
+                      </Text>
+                    </View>
+                  )
+                })}
+              </View>
+            ) : null}
+          </View>
+        )}
         renderItem={({ item }) => {
           const servings = numericValue(item.servings)
           const calories = Math.round(numericValue(item.foods.calories_per_serving) * servings)
@@ -222,7 +360,7 @@ export function DailyLogScreen() {
                   <Text style={appStyles.addFoodFoodMeta}>
                     {formatServings(servings)} × {item.foods.serving_description}
                   </Text>
-                  <Text style={appStyles.dailyLogFoodTime}>{mealName} · {time}</Text>
+                  <Text style={appStyles.dailyLogFoodTime}>Logged at {time} · {mealName}</Text>
                 </View>
                 <Text style={appStyles.dailyLogFoodCalories}>{calories} kcal</Text>
               </View>
@@ -249,32 +387,6 @@ export function DailyLogScreen() {
           )
         }}
       />
-
-      <View style={appStyles.dailyLogSummary}>
-        <Text style={appStyles.dailyLogSummaryTitle}>Daily intake</Text>
-        <View style={appStyles.dailyLogSummaryGrid}>
-          <View style={appStyles.dailyLogSummaryItem}>
-            <Text style={appStyles.dailyLogSummaryValue}>{Math.round(totals.calories)}</Text>
-            <Text style={appStyles.dailyLogSummaryLabel}>kcal</Text>
-          </View>
-          <View style={appStyles.dailyLogSummaryItem}>
-            <Text style={appStyles.dailyLogSummaryValue}>{Number(totals.protein.toFixed(1))} g</Text>
-            <Text style={appStyles.dailyLogSummaryLabel}>Protein</Text>
-          </View>
-          <View style={appStyles.dailyLogSummaryItem}>
-            <Text style={appStyles.dailyLogSummaryValue}>{Number(totals.carbs.toFixed(1))} g</Text>
-            <Text style={appStyles.dailyLogSummaryLabel}>Carbs</Text>
-          </View>
-          <View style={appStyles.dailyLogSummaryItem}>
-            <Text style={appStyles.dailyLogSummaryValue}>{Number(totals.fat.toFixed(1))} g</Text>
-            <Text style={appStyles.dailyLogSummaryLabel}>Fat</Text>
-          </View>
-          <View style={appStyles.dailyLogSummaryItem}>
-            <Text style={appStyles.dailyLogSummaryValue}>{Number(totals.fiber.toFixed(1))} g</Text>
-            <Text style={appStyles.dailyLogSummaryLabel}>Fiber</Text>
-          </View>
-        </View>
-      </View>
     </View>
   )
 }

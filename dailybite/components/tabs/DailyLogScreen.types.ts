@@ -24,3 +24,13 @@ export type DailyTotals = {
   fat: number
   fiber: number
 }
+
+export type NutritionGoal = {
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  fiber: number
+}
+
+export type GoalMetric = keyof NutritionGoal
