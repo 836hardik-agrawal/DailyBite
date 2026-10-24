@@ -1,18 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { PropsWithChildren } from 'react'
-import type { Session } from '@supabase/supabase-js'
 
 import { supabase } from '../lib/supabase'
-
-type AuthContextValue = {
-  session: Session | null
-  signOut: () => Promise<void>
-}
+import type { AuthContextValue } from './useAuth.types'
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 function useAuthState(): AuthContextValue {
-  const [session, setSession] = useState<Session | null>(null)
+  const [session, setSession] = useState<AuthContextValue['session']>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
