@@ -221,6 +221,49 @@ export const appStyles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
+  addFoodIntro: {
+    color: '#526168',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 8,
+  },
+  addFoodCategoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 14,
+  },
+  addFoodCategoryButton: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D9E1E5',
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  addFoodCategoryButtonSelected: {
+    backgroundColor: '#E7F3EE',
+    borderColor: '#277C65',
+  },
+  addFoodCategoryButtonText: {
+    color: '#526168',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  addFoodCategoryButtonTextSelected: {
+    color: '#205F4F',
+    fontWeight: '700',
+  },
+  addFoodSearchModeButton: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingVertical: 6,
+  },
+  addFoodSearchModeButtonText: {
+    color: '#277C65',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   addFoodStatusRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -244,6 +287,24 @@ export const appStyles = StyleSheet.create({
   addFoodListContent: {
     paddingBottom: 40,
     paddingTop: 20,
+  },
+  addFoodBrowseListContent: {
+    paddingBottom: 40,
+    paddingTop: 12,
+  },
+  addFoodBrowseItem: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5EBEE',
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  addFoodBrowseItemName: {
+    color: '#172329',
+    fontSize: 15,
+    fontWeight: '600',
   },
   addFoodResultCard: {
     backgroundColor: '#FFFFFF',
