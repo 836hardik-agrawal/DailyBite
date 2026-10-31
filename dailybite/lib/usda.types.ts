@@ -12,13 +12,23 @@ export type USDAFoodResult = {
   fiber: number | null
   nutrientsPer100g: boolean
   servingOptions: USDAFoodServingOption[]
-  source: 'USDA'
+  source: 'USDA' | 'CUSTOM'
 }
 
 export type USDAFoodServingOption = {
   id: string
   label: string
   gramWeight: number
+}
+
+export type FoodServingOption = USDAFoodServingOption & {
+  customNutrients?: {
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    fiber: number
+  }
 }
 
 export type USDAFoodNutrient = {
